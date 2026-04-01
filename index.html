@@ -437,7 +437,7 @@ body {
 
 
 <!-- bare-mux then scramjet — epoxy is imported dynamically in JS -->
-<script src="/baremux/bare.cjs"></script>
+<script src="/baremux/index.js"></script>
 <script src="/scram/scramjet.all.js"></script>
 
 <button class="back-btn" id="back-btn">
@@ -696,7 +696,12 @@ body {
 // Uses relative paths so this works on GitHub Pages subfolders
 // e.g. username.github.io/reponame/ — no absolute /paths/ used.
 
-const WISP_SERVER = 'wss://prism.onl/wisp/';
+// Wisp servers to try in order — first one that connects wins
+const WISP_SERVERS = [
+  'wss://prism.onl/wisp/',
+  'wss://wisp.mercurywork.shop/',
+  'wss://wisp.reflect.net/',
+];
 
 function isAbsoluteUrl(url) {
   return /^https?:\/\//i.test(url);
@@ -714,26 +719,18 @@ function setStatus(html) {
   if (el) el.innerHTML = html;
 }
 
-// _sj holds the ScramjetController after init — needed for encodeUrl()
+// ══ Scramjet + BareMux v2 ═════════════════════════════════
 let _sj = null;
-let _sjInit = null; // singleton promise — only initialise once
+let _sjInit = null;
 
 function initScramjet() {
   if (_sjInit) return _sjInit;
   _sjInit = (async () => {
-    if (!('serviceWorker' in navigator)) {
-      throw new Error('Service workers not supported');
-    }
-    if (typeof $scramjetLoadController === 'undefined') {
-      throw new Error('scramjet.all.js did not load — check /scram/ folder');
-    }
-    // bare.cjs (older bare-mux) exposes window.BareMux = { SetTransport, ... }
-    // It does NOT have BareMuxConnection — use SetTransport directly instead.
-    if (typeof BareMux === 'undefined' || typeof BareMux.SetTransport !== 'function') {
-      throw new Error('bare.cjs did not load — check /baremux/ folder');
-    }
+    if (!('serviceWorker' in navigator)) throw new Error('Service workers not supported');
+    if (typeof $scramjetLoadController === 'undefined') throw new Error('scramjet.all.js not loaded');
+    if (typeof BareMux === 'undefined') throw new Error('baremux/index.js not loaded');
 
-    // 1. Init ScramjetController — keep instance so encodeUrl() works later
+    // Init ScramjetController
     const { ScramjetController } = $scramjetLoadController();
     _sj = new ScramjetController({
       prefix: '/scramjet/',
@@ -742,18 +739,12 @@ function initScramjet() {
         all:  '/scram/scramjet.all.js',
         sync: '/scram/scramjet.sync.js',
       },
-      flags: {
-        rewriterLogs: false,
-        naiiveRewriter: false,
-        scramitize: false,
-      }
+      flags: { rewriterLogs: false, naiiveRewriter: false, scramitize: false }
     });
     await _sj.init();
 
-    // 2. Register SW
+    // Register SW
     const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
-
-    // 3. Wait until SW is controlling this page
     if (!navigator.serviceWorker.controller) {
       await new Promise(resolve => {
         navigator.serviceWorker.addEventListener('controllerchange', resolve, { once: true });
@@ -761,23 +752,35 @@ function initScramjet() {
       });
     }
 
-    // 4. Import epoxy dynamically and use SetSingletonTransport.
-    // This bypasses eval() entirely — works regardless of what the module exports.
-    const epoxy = await import('/epoxy/index.mjs');
-    // epoxy-tls v2+ exports EpoxyClient; older versions may export EpoxyTransport
-    const Cls = epoxy.EpoxyClient ?? epoxy.EpoxyTransport ?? epoxy.default;
-    if (typeof Cls !== 'function') {
-      throw new Error('No EpoxyClient class found in /epoxy/index.mjs — exports: ' + Object.keys(epoxy).join(', '));
-    }
-    const epoxyInst = new Cls({ wisp: WISP_SERVER });
-    await BareMux.SetSingletonTransport(epoxyInst);
+    // BareMux v2 — BareMuxConnection loads the transport inside a SharedWorker
+    // so epoxy/index.mjs is fetched by the worker, not the page
+    const conn = new BareMux.BareMuxConnection('/baremux/worker.js');
 
-    setStatus('<span class="ok">● Scramjet active</span> — proxied via Wisp');
+    // Try Wisp servers in order
+    const WISPS = [
+      'wss://prism.onl/wisp/',
+      'wss://wisp.mercurywork.shop/',
+      'wss://anura.pro/wisp/',
+    ];
+    let connected = false;
+    for (const wisp of WISPS) {
+      try {
+        await conn.setTransport('/epoxy/index.mjs', [{ wisp }]);
+        connected = true;
+        console.log('[lightning] Wisp connected:', wisp);
+        break;
+      } catch(e) {
+        console.warn('[lightning] Wisp failed:', wisp, e.message);
+      }
+    }
+    if (!connected) throw new Error('All Wisp servers failed');
+
+    setStatus('<span class="ok">● Scramjet active</span>');
     console.log('[lightning] Scramjet ready');
   })().catch(err => {
-    _sjInit = null; // reset so user can retry
+    _sjInit = null;
     setStatus('<span class="warn">●</span> Proxy error: ' + err.message);
-    console.error('[lightning] Scramjet init error:', err);
+    console.error('[lightning]', err);
     throw err;
   });
   return _sjInit;
