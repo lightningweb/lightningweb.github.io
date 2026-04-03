@@ -868,7 +868,7 @@ function openModal(url, title, forceProxy = false) {
       // _sj.encodeUrl() is the correct Scramjet API — returns the
       // proxied URL that the service worker will intercept and handle
       document.getElementById('game-frame').src =
-  '/scramjet/' + _sj.encodeUrl(target);
+  _sj.encodeUrl(target);
     }).catch(err => {
       document.getElementById('modal-title').textContent =
         'Proxy error: ' + (err.message || err);
