@@ -7,6 +7,18 @@
 
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
 
+<script>
+setInterval(() => {
+  fetch('/config.json')
+    .then(res => res.json())
+    .then(config => {
+      if (!config.maintenance) {
+        window.location.href = "/";
+      }
+    });
+}, 5000);
+</script>
+
 <style>
 body {
   margin: 0;
