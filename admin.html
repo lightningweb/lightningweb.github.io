@@ -128,28 +128,40 @@ async function load() {
 
 // Toggle
 async function toggle() {
+  // flip state instantly
   state = !state;
+  updateUI(); // 🔥 move toggle immediately
 
-  const res = await fetch(API + "/set", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-      // "x-admin-key": "your-secret"
-    },
-    body: JSON.stringify({
-      maintenance: state,
-      sha: sha
-    })
-  });
+  try {
+    const res = await fetch(API + "/set", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+        // "x-admin-key": "your-secret"
+      },
+      body: JSON.stringify({
+        maintenance: state,
+        sha: sha
+      })
+    });
 
-  const data = await res.json();
+    const data = await res.json();
 
-  if (data.error) {
-    alert("Error: " + data.error);
-    return;
+    if (data.error) {
+      alert("Error: " + data.error);
+      state = !state; // revert if failed
+      updateUI();
+      return;
+    }
+
+    // reload to get new SHA
+    load();
+
+  } catch (e) {
+    alert("Request failed");
+    state = !state;
+    updateUI();
   }
-
-  load();
 }
 
 // UI update
