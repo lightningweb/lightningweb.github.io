@@ -588,9 +588,16 @@ to   { opacity: 1; transform: scale(1); }
   init(); frame();
 })();
 
-// ══ Scramjet helpers ══════════════════════════════════════
-// Uses relative paths so this works on GitHub Pages subfolders
-// e.g. username.github.io/reponame/ — no absolute /paths/ used.
+// ══ Helpers ════════════════════════════════════════════════
+function isAbsoluteUrl(url) {
+  return /^https?:\/\//i.test(url);
+}
+
+function resolveSearchUrl(q, engine) {
+  if (/^https?:\/\//i.test(q)) return q;
+  if (/^[\w-]+(\.[a-z]{2,})(\/|$)/i.test(q)) return 'https://' + q;
+  return engine + encodeURIComponent(q);
+}
 
 // ══ Navigation ═════════════════════════════════════════════
 const backBtn = document.getElementById('back-btn');
@@ -738,7 +745,6 @@ function renderGames() {
     const name  = g.title  ?? g.name  ?? g.id ?? 'Unknown';
     const thumb = g.thumbnail ?? g.image ?? '';
     const url   = g.file   ?? g.url   ?? '';
-    const needsProxy = isAbsoluteUrl(url);
     return `
       <div class="game-card"
            data-url="${esc(url)}"
