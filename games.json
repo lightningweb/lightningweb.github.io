@@ -191,5 +191,12 @@
     "thumbnail": "/games/thumbs/minecraft.png",
     "file": "/games/files/non-folder/wasm-gc%201.20.html",
     "new": "true"
-  }
+  },
+  {
+    "id": "roblox",
+    "title": "Roblox",
+    "thumbnail": "/games/thumbs/roblox.png",
+    "file": "https://nowgg.fun/apps/a/19900/b.html",
+    "new": "true"
+  },
 ]
