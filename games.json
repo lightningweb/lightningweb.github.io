@@ -198,5 +198,12 @@
     "thumbnail": "/games/thumbs/IMG_0376.png",
     "file": "https://nowgg.fun/apps/a/19900/b.html",
     "new": "true"
+  },
+  {
+    "id": "tomodachi-collection",
+    "title": "Tomodachi Collection",
+    "thumbnail": "/games/thumbs/tomodachi-collection.webp",
+    "file": "/games/files/non-folder/tomodachi-collection.html",
+    "new": "true"
   }
 ]
