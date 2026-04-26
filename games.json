@@ -7,6 +7,13 @@
     "new": "false"
   },
   {
+    "id": "granny",
+    "title": "Granny",
+    "thumbnail": "/games/thumbs/90.png",
+    "file": "/games/files/non-folder/granny.html",
+    "new": "false"
+  },
+  {
     "id": "geoguessr",
     "title": "GeoGuessr",
     "thumbnail": "/games/thumbs/geog.jpg",
